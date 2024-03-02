@@ -92,7 +92,6 @@ public class FileTranSender {
 
         }catch (Exception ex){
             System.err.println("链接失败");
-            throw new RuntimeException(ex);
         }
     }
     public void remoteShut(String pwd){
