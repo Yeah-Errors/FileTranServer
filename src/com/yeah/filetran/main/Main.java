@@ -119,7 +119,7 @@ public class Main {
                 "-I 安装这个服务（安装接收端）\n\t" +
                 "-H 打印帮助信息\n\n" +
                 "Version %s\n" +
-                "Source_code url:%s",VERSION,URL);
+                "Source_code url:%s\n",VERSION,URL);
 
     }
 }
