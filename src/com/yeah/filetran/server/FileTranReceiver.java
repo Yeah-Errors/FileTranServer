@@ -8,6 +8,7 @@
  *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  *
+ * *You may not use the Software for any commercial purposes.*
  */
 
 package com.yeah.filetran.server;
@@ -69,7 +70,7 @@ public class FileTranReceiver {
         DEFAULT_PORT = Integer.parseInt(properties.getProperty("port"));
         DEFAULT_PATH = properties.getProperty("path");
         printLog("配置文件加载成功...");
-        printLog("可前往"+jarPath()+"/conf/yftr.conf.xml修改相应配置信息");
+        printLog("可前往"+jarPath()+File.separator+"conf"+File.separator+"yftr.conf.xml修改相应配置信息");
     }
 
     private static FileTranReceiver fileTranReceiver;
