@@ -8,7 +8,6 @@
  *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  *
- * *You may not use the Software for any commercial purposes.*
  */
 
 package com.yeah.filetran.server;
@@ -25,6 +24,7 @@ import java.util.Scanner;
 
 import static com.yeah.filetran.main.Util.printErr;
 import static com.yeah.filetran.main.Util.printLog;
+import static com.yeah.filetran.main.Util.jarPath;
 
 public class FileTranReceiver {
     private int listenerPort;
@@ -36,7 +36,7 @@ public class FileTranReceiver {
     private static final String DEFAULT_PATH;
     static {
         Properties properties = new Properties();
-        File file = new File(Util.jarPath()+File.separator+"conf"+File.separator+"yftr.conf.xml");
+        File file = new File(jarPath()+File.separator+"conf"+File.separator+"yftr.conf.xml");
         try (FileInputStream fileInputStream = new FileInputStream(file)){
             properties.loadFromXML(fileInputStream);
 
@@ -47,7 +47,8 @@ public class FileTranReceiver {
                 try {
                     file.createNewFile();
                 } catch (IOException ex) {
-                    System.err.println("没有权限...");
+                    printErr("创建配置文件失败,没有对"+jarPath()+"路径的读写权限...");
+                    System.exit(0x1);
                 }
             }
 
@@ -58,17 +59,17 @@ public class FileTranReceiver {
             try (FileOutputStream fileOutputStream = new FileOutputStream(file)){
                 properties.storeToXML(fileOutputStream,"接收端配置文件","utf-8");
                 properties.loadFromXML(new FileInputStream(file));
-            } catch (IOException ignored) {
-
+            } catch (IOException exception) {
+                printErr("写入配置文件失败,没有对"+jarPath()+"路径的读写权限");
             }
-
 
         }
         DEFAULT_ALIVE = Boolean.parseBoolean(properties.getProperty("alive"));
         pwd = properties.getProperty("pwd");
         DEFAULT_PORT = Integer.parseInt(properties.getProperty("port"));
         DEFAULT_PATH = properties.getProperty("path");
-        System.out.println(DEFAULT_PATH);
+        printLog("配置文件加载成功...");
+        printLog("可前往"+jarPath()+"/conf/yftr.conf.xml修改相应配置信息");
     }
 
     private static FileTranReceiver fileTranReceiver;
@@ -102,7 +103,7 @@ public class FileTranReceiver {
         try(
         ServerSocket serverSocket = new ServerSocket(listenerPort)
         ){
-            System.out.printf("服务启动成功,正在监听%d端口，等待链接》》》\n",listenerPort);
+            System.out.printf("服务启动成功,正在监听%d端口，等待链接>>>\n",listenerPort);
             do {
                 Socket accept = serverSocket.accept();
                 FileTranReceiverSocket fileTranReceiverSocket = new FileTranReceiverSocket(accept);
@@ -153,9 +154,7 @@ public class FileTranReceiver {
             return false;
         }
     }
-    public void exit(){
-        fileTranReceiver = null;
-    }
+
     private class FileTranReceiverSocket extends Thread{
 
         Socket socket;

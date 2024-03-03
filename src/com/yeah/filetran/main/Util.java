@@ -7,7 +7,6 @@
  *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  *
- * *You may not use the Software for any commercial purposes.*
  */
 
 package com.yeah.filetran.main;
@@ -17,14 +16,12 @@ import java.util.Date;
 
 public class Util {
     public static String jarPath()  {
-        try {
-            String resource = Class.forName("com.yeah.filetran.main.Util").getResource("").getPath();
 
-            return new File(resource.substring(6, resource.indexOf("/yfth.jar"))).getAbsolutePath();
-        } catch (ClassNotFoundException ignored) {
+            String Path = Util.class.getProtectionDomain().getCodeSource().getLocation().getPath();
+            String parsePath = Path.substring(0, Path.lastIndexOf("/"));
 
-        }
-        return "";
+            return new File(parsePath).getAbsolutePath();
+
     }
     public static byte[] int2bytes(int n){
         byte[] bytes = new byte[4];
