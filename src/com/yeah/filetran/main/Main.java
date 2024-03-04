@@ -106,6 +106,7 @@ public class Main {
     public static void printHelp(){
         System.out.printf("欢迎使用 YeahFileTranHelper\n\n" +
                 "这是一个简单的文件传输工具（目前不支持过大文件的传输）\n\n" +
+                "理论最大传输文件大小为2G\n\n" +
                 "用法:\njava -jar yfth.jar -S(-R,-I,-H) [-para value]...\n\t" +
                 "-S 去发送文件\n\t\t" +
                     "-h host : 链接至指定域\n\t\t" +
