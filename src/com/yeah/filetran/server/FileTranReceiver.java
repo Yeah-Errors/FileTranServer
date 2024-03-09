@@ -8,24 +8,25 @@
  *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  *
- * *You may not use the Software for any commercial purposes.*
+ *
  */
 
 package com.yeah.filetran.server;
 
-import com.yeah.filetran.main.Util;
+import com.yeah.filetran.util.Util;
 
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketAddress;
+import java.nio.charset.StandardCharsets;
 import java.util.Properties;
 import java.util.Random;
 import java.util.Scanner;
 
-import static com.yeah.filetran.main.Util.printErr;
-import static com.yeah.filetran.main.Util.printLog;
-import static com.yeah.filetran.main.Util.jarPath;
+import static com.yeah.filetran.util.Util.printErr;
+import static com.yeah.filetran.util.Util.printLog;
+import static com.yeah.filetran.util.Util.jarPath;
 
 public class FileTranReceiver {
     private int listenerPort;
@@ -186,13 +187,26 @@ public class FileTranReceiver {
                     if(bytes2File(bytes,savePath+File.separator+fileName)){
                         printLog("传输完成:"+savePath+File.separator+fileName+" 文件的MD5码为"+MD5+",请自行核验文件完整性");
                     }
-                }else if(s1.equals("Yeah FILE TRANSMISSION SERVICE|STOP SERVICE|PWD="+pwd)){
-                    printLog("接受到远程停止指令...");
-                    socket.close();
-                    System.exit(0);
+                }else if(s1.startsWith("Yeah FILE TRANSMISSION SERVICE|")){
+                    if(s1.endsWith("CONNECT")){
+                        printLog("来自"+socket.getInetAddress().toString().substring(1)+"的首次链接请求通过");
+                        OutputStream outputStream = socket.getOutputStream();
+                        int lengths = ("YEAH FILE TRANSMISSION SERVICE|PASS".getBytes(StandardCharsets.UTF_8)).length;
+                        outputStream.write(Util.int2bytes(lengths));
+                        outputStream.write("YEAH FILE TRANSMISSION SERVICE|PASS".getBytes(StandardCharsets.UTF_8));
+                        outputStream.flush();
+                        outputStream.close();
+                    }else if(s1.endsWith("PWD="+pwd)) {
+                        printLog("接受到远程停止指令...");
+                        socket.close();
+                        System.exit(0);
+                    }
+
                 }
             }catch (IOException e){
                 printErr("传输出错...");
+            }catch (OutOfMemoryError ome){
+                printLog("来自"+socket.getInetAddress().toString().substring(1)+"的错误请求，以拒绝...");
             }
         }
         public byte[] stream2ByteArray(InputStream in) throws IOException{

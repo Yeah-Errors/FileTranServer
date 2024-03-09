@@ -7,11 +7,12 @@
  *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  *
+ *
  */
 
 package com.yeah.filetran.client;
 
-import com.yeah.filetran.main.Util;
+import com.yeah.filetran.util.Util;
 
 import java.io.*;
 import java.net.Socket;
@@ -62,6 +63,14 @@ public class FileTranSender {
         this.remotePort=DEFAULT_REMOTE_PORT;
     }
 
+    public String getRemoteHost() {
+        return remoteHost;
+    }
+
+    public int getRemotePort() {
+        return remotePort;
+    }
+
     public void setRemoteHost(String remoteHost) {
         this.remoteHost = remoteHost;
     }
@@ -80,7 +89,7 @@ public class FileTranSender {
             OutputStream outputStream = socket.getOutputStream();
 
             String FILE_NAME = file.getName();
-            String MD5 = getFileMD5(file);
+            String MD5 = Util.getFileMD5(file);
             int length = (HEADER + ":FILE_NAME="+FILE_NAME + "|MD5=" + MD5).getBytes(StandardCharsets.UTF_8).length;
             outputStream.write(Util.int2bytes(length));
             outputStream.write((HEADER + ":FILE_NAME="+FILE_NAME + "|MD5=" + MD5).getBytes(StandardCharsets.UTF_8));
@@ -90,7 +99,7 @@ public class FileTranSender {
             outputStream.close();
 
         }catch (Exception ex){
-            System.err.println("链接失败");
+            System.out.println("连接异常，请检测远端地址是否正确，或本地dns是否正常解析至远端设备");
         }
     }
     public void remoteShut(String pwd){
@@ -106,28 +115,6 @@ public class FileTranSender {
         }
     }
 
-    private static String getFileMD5(File file){
-        String md5 = "";
-        try {
-            MessageDigest MD5 = MessageDigest.getInstance("MD5");
-            FileInputStream fileInputStream = new FileInputStream(file);
-            byte[] bytes = new byte[8192];
-            int length;
-            while((length = fileInputStream.read(bytes))!=-1){
-                MD5.update(bytes,0,length);
-            }
-            byte[] digest = MD5.digest();
-            StringBuilder stringBuilder = new StringBuilder();
-            for (byte b : digest) {
-                stringBuilder.append(String.format("%02x",b));
-            }
-            md5 = stringBuilder.toString();
-        } catch (Exception ignored) {
-
-        }
-        return md5;
-
-    }
     public static byte[] file2Byte(File file){
 
         byte[] byteArray;

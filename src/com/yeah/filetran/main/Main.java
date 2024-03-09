@@ -7,21 +7,31 @@
  *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  *
- * *You may not use the Software for any commercial purposes.*
+ *
  */
 
 package com.yeah.filetran.main;
 
 import com.yeah.filetran.client.FileTranSender;
 import com.yeah.filetran.server.FileTranReceiver;
+import com.yeah.filetran.util.Util;
 
 import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.Socket;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Scanner;
+import static com.yeah.filetran.util.Util.printErr;
+import static com.yeah.filetran.util.Util.printLog;
+import static com.yeah.filetran.util.Util.bytes2int;
+import static com.yeah.filetran.util.Util.int2bytes;
 
 public class Main {
      static final String URL = "https://github.com/Yeah-Errors/FileTranServer";
-     static final String VERSION = "1.1.1";
+     static final String VERSION = "1.1.3";
 
     public static void main(String[] args) {
         if(args.length==0){
@@ -46,7 +56,6 @@ public class Main {
                             if(!file.exists()){
                                 System.out.println("文件不存在...");
                                 System.exit(1);
-
                             }
                             files.add(file);
                             break;
@@ -57,6 +66,31 @@ public class Main {
                         }
 
                     }
+                }
+                try(Socket socket = new Socket(fileTranSender.getRemoteHost(), fileTranSender.getRemotePort())) {
+                    OutputStream outputStream = socket.getOutputStream();
+                    int length = ("Yeah FILE TRANSMISSION SERVICE|CONNECT").getBytes(StandardCharsets.UTF_8).length;
+                    outputStream.write(int2bytes(length));
+                    outputStream.write(("Yeah FILE TRANSMISSION SERVICE|CONNECT").getBytes(StandardCharsets.UTF_8));
+                    outputStream.flush();
+                    socket.shutdownOutput();
+                    InputStream inputStream = socket.getInputStream();
+                    byte[] intLength = new byte[4];
+                    inputStream.read(intLength);
+                    int lengths = bytes2int(intLength);
+                    byte[] header = new byte[lengths];
+                    inputStream.read(header);
+                    String s1 = new String(header);
+                    if (s1.equals("YEAH FILE TRANSMISSION SERVICE|PASS")){
+                        printLog("连接成功...");
+
+                    }else{
+                        throw new IOException();
+                    }
+                    inputStream.close();
+                } catch (IOException e) {
+                    printErr("链接失败,,,");
+                    System.exit(0x4);
                 }
                 if(files.isEmpty()){
                     boolean exit = false;

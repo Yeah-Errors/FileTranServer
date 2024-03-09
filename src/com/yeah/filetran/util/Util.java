@@ -7,11 +7,15 @@
  *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  *
+ *
  */
 
-package com.yeah.filetran.main;
+package com.yeah.filetran.util;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.InputStream;
+import java.security.MessageDigest;
 import java.util.Date;
 
 public class Util {
@@ -39,5 +43,26 @@ public class Util {
     }
     public static void printErr(String msg){
         System.out.printf("[info]%s : %s\n",new Date(),msg);
+    }
+    public static String getFileMD5(File file){
+        String md5 = "";
+        try {
+            MessageDigest MD5 = MessageDigest.getInstance("MD5");
+            FileInputStream fileInputStream = new FileInputStream(file);
+            byte[] bytes = new byte[8192];
+            int length;
+            while((length = fileInputStream.read(bytes))!=-1){
+                MD5.update(bytes,0,length);
+            }
+            byte[] digest = MD5.digest();
+            StringBuilder stringBuilder = new StringBuilder();
+            for (byte b : digest) {
+                stringBuilder.append(String.format("%02x",b));
+            }
+            md5 = stringBuilder.toString();
+        } catch (Exception ignored) {
+
+        }
+        return md5;
     }
 }
