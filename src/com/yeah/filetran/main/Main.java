@@ -14,7 +14,6 @@ package com.yeah.filetran.main;
 
 import com.yeah.filetran.client.FileTranSender;
 import com.yeah.filetran.server.FileTranReceiver;
-import com.yeah.filetran.util.Util;
 
 import java.io.File;
 import java.io.IOException;
