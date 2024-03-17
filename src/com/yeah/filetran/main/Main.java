@@ -14,24 +14,21 @@ package com.yeah.filetran.main;
 
 import com.yeah.filetran.client.FileTranSender;
 import com.yeah.filetran.server.FileTranReceiver;
-import com.yeah.filetran.util.Util;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.net.Socket;
+import java.net.InetSocketAddress;
+import java.nio.ByteBuffer;
+import java.nio.channels.SocketChannel;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Scanner;
 import static com.yeah.filetran.util.Util.printErr;
 import static com.yeah.filetran.util.Util.printLog;
-import static com.yeah.filetran.util.Util.bytes2int;
-import static com.yeah.filetran.util.Util.int2bytes;
 
 public class Main {
      static final String URL = "https://github.com/Yeah-Errors/FileTranServer";
-     static final String VERSION = "1.1.3";
+     static final String VERSION = "1.2.0";
 
     public static void main(String[] args) {
         if(args.length==0){
@@ -67,27 +64,24 @@ public class Main {
 
                     }
                 }
-                try(Socket socket = new Socket(fileTranSender.getRemoteHost(), fileTranSender.getRemotePort())) {
-                    OutputStream outputStream = socket.getOutputStream();
+                try(SocketChannel channel = SocketChannel.open(new InetSocketAddress(fileTranSender.getRemoteHost(), fileTranSender.getRemotePort()))) {
+                    byte[] ConnectHeader = ("Yeah FILE TRANSMISSION SERVICE|CONNECT").getBytes(StandardCharsets.UTF_8);
                     int length = ("Yeah FILE TRANSMISSION SERVICE|CONNECT").getBytes(StandardCharsets.UTF_8).length;
-                    outputStream.write(int2bytes(length));
-                    outputStream.write(("Yeah FILE TRANSMISSION SERVICE|CONNECT").getBytes(StandardCharsets.UTF_8));
-                    outputStream.flush();
-                    socket.shutdownOutput();
-                    InputStream inputStream = socket.getInputStream();
-                    byte[] intLength = new byte[4];
-                    inputStream.read(intLength);
-                    int lengths = bytes2int(intLength);
-                    byte[] header = new byte[lengths];
-                    inputStream.read(header);
-                    String s1 = new String(header);
-                    if (s1.equals("YEAH FILE TRANSMISSION SERVICE|PASS")){
+                    ByteBuffer bb = ByteBuffer.allocate(4);
+                    bb.putInt(length);
+                    bb.flip();
+                    channel.write(bb);
+                    bb = ByteBuffer.wrap(ConnectHeader);
+                    channel.write(bb);
+                    bb=ByteBuffer.allocate(35);
+                    channel.read(bb);
+                    String s = new String(bb.array(), StandardCharsets.UTF_8);
+                    if (s.equals("YEAH FILE TRANSMISSION SERVICE|PASS")){
                         printLog("连接成功...");
 
                     }else{
                         throw new IOException();
                     }
-                    inputStream.close();
                 } catch (IOException e) {
                     printErr("链接失败,,,");
                     System.exit(0x4);
@@ -139,8 +133,7 @@ public class Main {
     }
     public static void printHelp(){
         System.out.printf("欢迎使用 YeahFileTranHelper\n\n" +
-                "这是一个简单的文件传输工具（目前不支持过大文件的传输）\n\n" +
-                "理论最大传输文件大小为2G\n\n" +
+                "这是一个简单的文件传输工具（采用NIO,分段传输）\n\n" +
                 "用法:\njava -jar yfth.jar -S(-R,-I,-H) [-para value]...\n\t" +
                 "-S 去发送文件\n\t\t" +
                     "-h host : 链接至指定域\n\t\t" +
