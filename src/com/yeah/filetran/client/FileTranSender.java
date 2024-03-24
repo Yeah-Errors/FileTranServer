@@ -24,6 +24,8 @@ import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.Properties;
 
+import static com.yeah.filetran.util.Util.printLog;
+
 public class FileTranSender {
     private static final String HEADER ="Yeah FILE TRANSMISSION SERVICE";
     private static final int DEFAULT_REMOTE_PORT;
@@ -34,13 +36,11 @@ public class FileTranSender {
     private String remoteHost;
 
     private int remotePort;
-    static {
+    static  {
         Properties properties = new Properties();
-
         File file = new File(Util.jarPath()+File.separator+"conf"+File.separator+"yfts.conf.xml");
         try (FileInputStream fileInputStream = new FileInputStream(file)){
             properties.loadFromXML(new FileInputStream(file));
-
         } catch (IOException e) {
             if (!file.getParentFile().exists())file.getParentFile().mkdirs();
             if(!file.exists()) {
@@ -59,9 +59,10 @@ public class FileTranSender {
 
             }
         }
-        DEFAULT_REMOTE_HOST = properties.getProperty("host");
-        DEFAULT_REMOTE_PORT = Integer.parseInt(properties.getProperty("port"));
-    }
+             DEFAULT_REMOTE_HOST = properties.getProperty("host");
+             DEFAULT_REMOTE_PORT = Integer.parseInt(properties.getProperty("port"));
+             Util.printLog("初始化成功...");
+     }
     private FileTranSender(){
         this.remoteHost=DEFAULT_REMOTE_HOST;
         this.remotePort=DEFAULT_REMOTE_PORT;
@@ -88,6 +89,20 @@ public class FileTranSender {
         }
         return fileTranSender;
     }
+    public void loadConfig(String Path){
+        Properties properties = new Properties();
+        File file = new File(Path);
+        try {
+            properties.loadFromXML(new FileInputStream(file));
+        } catch (IOException e) {
+            Util.printErr("加载配置文件失败...");
+            System.exit(1);
+        }
+        remotePort = Integer.parseInt(properties.getProperty("port"));
+        remoteHost = properties.getProperty("host");
+        printLog("配置文件加载成功...");
+    }
+
     public void run(File file){
         try {
             SocketChannel channel = SocketChannel.open(new InetSocketAddress(remoteHost, remotePort));
@@ -118,7 +133,7 @@ public class FileTranSender {
                 byteBuffer.clear();
                 fileSize -= read;
             }
-
+            channel.close();
         }catch (Exception ex){
             System.out.println("连接异常，请检测远端地址是否正确，或本地dns是否正常解析至远端设备");
 
@@ -135,6 +150,7 @@ public class FileTranSender {
             channel.write(allocate);
             ByteBuffer head = ByteBuffer.wrap(bytes);
             channel.write(head);
+            channel.close();
         }catch(Exception e){
             System.out.println("失败");
         }

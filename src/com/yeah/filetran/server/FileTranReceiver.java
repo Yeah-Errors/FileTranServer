@@ -37,13 +37,17 @@ public class FileTranReceiver {
     private int listenerPort;
     private boolean keepAlive;
     private String savePath;
-    private static final String pwd;
+    private String pwd;
+
+    private static final String DEFAULT_PWD;
     private static final int DEFAULT_PORT;
     private static final boolean DEFAULT_ALIVE;
     private static final String DEFAULT_PATH;
-    static {
+    private int allowCount = 1;
+
+     static {
         Properties properties = new Properties();
-        File file = new File(jarPath()+File.separator+"conf"+File.separator+"yftr.conf.xml");
+        File file = new File(Util.jarPath()+File.separator+"conf"+File.separator+"yftr.conf.xml");
         try (FileInputStream fileInputStream = new FileInputStream(file)){
             properties.loadFromXML(fileInputStream);
 
@@ -58,7 +62,6 @@ public class FileTranReceiver {
                     System.exit(0x1);
                 }
             }
-
             properties.setProperty("alive","false");
             properties.setProperty("port","4951");
             properties.setProperty("path",new File(Util.jarPath()+File.separator+"r_res").getAbsolutePath());
@@ -71,13 +74,13 @@ public class FileTranReceiver {
             }
 
         }
-        DEFAULT_ALIVE = Boolean.parseBoolean(properties.getProperty("alive"));
-        pwd = properties.getProperty("pwd");
-        DEFAULT_PORT = Integer.parseInt(properties.getProperty("port"));
-        DEFAULT_PATH = properties.getProperty("path");
-        printLog("配置文件加载成功...");
-        printLog("可前往"+jarPath()+File.separator+"conf"+File.separator+"yftr.conf.xml修改相应配置信息");
-    }
+             DEFAULT_ALIVE = Boolean.parseBoolean(properties.getProperty("alive"));
+             DEFAULT_PWD = properties.getProperty("pwd");
+             DEFAULT_PORT = Integer.parseInt(properties.getProperty("port"));
+             DEFAULT_PATH = properties.getProperty("path");
+             printLog("初始化文件成功...");
+     }
+
 
     private static FileTranReceiver fileTranReceiver;
 
@@ -86,6 +89,7 @@ public class FileTranReceiver {
         this.listenerPort = DEFAULT_PORT;
         this.keepAlive = DEFAULT_ALIVE;
         this.savePath =DEFAULT_PATH;
+        this.pwd=DEFAULT_PWD;
     }
     public static FileTranReceiver getInstance(){
         if(fileTranReceiver==null){
@@ -97,6 +101,23 @@ public class FileTranReceiver {
         printErr("没有对"+fileTranReceiver.savePath+"的读写权限...");
         System.exit(0x4);
         return null;
+    }
+    public void loadConfig(String Path){
+        Properties properties = new Properties();
+        File file = new File(Path);
+
+        try {
+            properties.loadFromXML(new FileInputStream(file));
+        } catch (IOException e) {
+            Util.printErr("加载配置文件失败...");
+            System.exit(1);
+        }
+
+        keepAlive = Boolean.parseBoolean(properties.getProperty("alive"));
+        pwd = properties.getProperty("pwd");
+        listenerPort = Integer.parseInt(properties.getProperty("port"));
+        savePath = properties.getProperty("path");
+        printLog("配置文件加载成功...");
     }
 
 
@@ -123,7 +144,7 @@ public class FileTranReceiver {
                 SocketChannel accept = fileSocketChanel.accept();
                 FileTranReceiverSocket fileTranReceiverSocket = new FileTranReceiverSocket(accept);
                 fileTranReceiverSocket.start();
-            }while (keepAlive);
+            }while (keepAlive||allowCount!=0);
 
         }catch (IOException e) {
             if (listenerPort!=4951){
@@ -214,6 +235,7 @@ public class FileTranReceiver {
                         ByteBuffer wrap = ByteBuffer.wrap(bytes);
                         socketChannel.write(wrap);
                         socketChannel.close();
+                        allowCount--;
                     } else if (header.endsWith("PWD=" + pwd)) {
                         printLog("接受到远程停止指令...");
                         System.exit(0);
