@@ -14,7 +14,6 @@ package com.yeah.filetran.util;
 
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.InputStream;
 import java.security.MessageDigest;
 import java.util.Date;
 
@@ -26,17 +25,6 @@ public class Util {
 
             return new File(parsePath).getAbsolutePath();
 
-    }
-    public static byte[] int2bytes(int n){
-        byte[] bytes = new byte[4];
-        bytes[0] = (byte) (n >> 24);
-        bytes[1] =(byte)(n >> 16);
-        bytes[2] =(byte)(n >> 8);
-        bytes[3] =(byte)(n);
-        return bytes;
-    }
-    public static int bytes2int(byte[] bytes){
-        return (bytes[0]<<24)|(bytes[1]<<16)|(bytes[2]<<8)|(bytes[3]);
     }
     public static void printLog(String msg){
         System.out.printf("[info]%s : %s\n",new Date(),msg);

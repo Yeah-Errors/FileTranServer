@@ -15,10 +15,16 @@ package com.yeah.filetran.client;
 import com.yeah.filetran.util.Util;
 
 import java.io.*;
-import java.net.Socket;
+import java.net.InetSocketAddress;
+import java.nio.ByteBuffer;
+import java.nio.channels.FileChannel;
+import java.nio.channels.SocketChannel;
 import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.util.Properties;
+
+import static com.yeah.filetran.util.Util.printLog;
 
 public class FileTranSender {
     private static final String HEADER ="Yeah FILE TRANSMISSION SERVICE";
@@ -30,13 +36,11 @@ public class FileTranSender {
     private String remoteHost;
 
     private int remotePort;
-    static {
+    static  {
         Properties properties = new Properties();
-
         File file = new File(Util.jarPath()+File.separator+"conf"+File.separator+"yfts.conf.xml");
         try (FileInputStream fileInputStream = new FileInputStream(file)){
             properties.loadFromXML(new FileInputStream(file));
-
         } catch (IOException e) {
             if (!file.getParentFile().exists())file.getParentFile().mkdirs();
             if(!file.exists()) {
@@ -55,9 +59,10 @@ public class FileTranSender {
 
             }
         }
-        DEFAULT_REMOTE_HOST = properties.getProperty("host");
-        DEFAULT_REMOTE_PORT = Integer.parseInt(properties.getProperty("port"));
-    }
+             DEFAULT_REMOTE_HOST = properties.getProperty("host");
+             DEFAULT_REMOTE_PORT = Integer.parseInt(properties.getProperty("port"));
+             Util.printLog("初始化成功...");
+     }
     private FileTranSender(){
         this.remoteHost=DEFAULT_REMOTE_HOST;
         this.remotePort=DEFAULT_REMOTE_PORT;
@@ -84,50 +89,70 @@ public class FileTranSender {
         }
         return fileTranSender;
     }
-    public void run(File file){
-        try (Socket socket = new Socket(remoteHost, remotePort)) {
-            OutputStream outputStream = socket.getOutputStream();
+    public void loadConfig(String Path){
+        Properties properties = new Properties();
+        File file = new File(Path);
+        try {
+            properties.loadFromXML(new FileInputStream(file));
+        } catch (IOException e) {
+            Util.printErr("加载配置文件失败...");
+            System.exit(1);
+        }
+        remotePort = Integer.parseInt(properties.getProperty("port"));
+        remoteHost = properties.getProperty("host");
+        printLog("配置文件加载成功...");
+    }
 
+    public void run(File file){
+        try {
+            SocketChannel channel = SocketChannel.open(new InetSocketAddress(remoteHost, remotePort));
+
+            //获取文件信息
+            long fileSize = file.length();
             String FILE_NAME = file.getName();
             String MD5 = Util.getFileMD5(file);
-            int length = (HEADER + ":FILE_NAME="+FILE_NAME + "|MD5=" + MD5).getBytes(StandardCharsets.UTF_8).length;
-            outputStream.write(Util.int2bytes(length));
-            outputStream.write((HEADER + ":FILE_NAME="+FILE_NAME + "|MD5=" + MD5).getBytes(StandardCharsets.UTF_8));
+            //传送文件信息
+            byte[] bytes = (HEADER + ":FILE_NAME=" + FILE_NAME + "|MD5=" + MD5 + "|SIZE=" + fileSize).getBytes(StandardCharsets.UTF_8);
+            int length = bytes.length;
+            ByteBuffer allocate = ByteBuffer.allocate(4);
+            allocate.putInt(length);
+            allocate.flip();
+            channel.write(allocate);
+            ByteBuffer head = ByteBuffer.wrap(bytes);
+            channel.write(head);
 
-            outputStream.write(file2Byte(file));
-            outputStream.flush();
-            outputStream.close();
+            //传送文件内容
 
+            FileChannel tran = FileChannel.open(Paths.get(file.getPath()), StandardOpenOption.READ, StandardOpenOption.WRITE);
+            ByteBuffer byteBuffer = ByteBuffer.allocate(10485760);
+            while(fileSize>0){
+                int read = tran.read(byteBuffer);
+                if (read<0) break;
+                byteBuffer.flip();
+                channel.write(byteBuffer);
+                byteBuffer.clear();
+                fileSize -= read;
+            }
+            channel.close();
         }catch (Exception ex){
             System.out.println("连接异常，请检测远端地址是否正确，或本地dns是否正常解析至远端设备");
+
         }
     }
     public void remoteShut(String pwd){
-        try(Socket socket = new Socket(remoteHost, remotePort)){
-            OutputStream outputStream = socket.getOutputStream();
-            int length = ((HEADER+"|STOP SERVICE|PWD="+pwd).getBytes(StandardCharsets.UTF_8)).length;
-            outputStream.write(Util.int2bytes(length));
-            outputStream.write((HEADER+"|STOP SERVICE|PWD="+pwd).getBytes(StandardCharsets.UTF_8));
-            outputStream.flush();
-            outputStream.close();
+        try{
+            SocketChannel channel = SocketChannel.open(new InetSocketAddress(remoteHost, remotePort));
+            byte[] bytes = ("Yeah FILE TRANSMISSION SERVICE|PWD="+pwd).getBytes(StandardCharsets.UTF_8);
+            int length = bytes.length;
+            ByteBuffer allocate = ByteBuffer.allocate(4);
+            allocate.putInt(length);
+            allocate.flip();
+            channel.write(allocate);
+            ByteBuffer head = ByteBuffer.wrap(bytes);
+            channel.write(head);
+            channel.close();
         }catch(Exception e){
             System.out.println("失败");
         }
-    }
-
-    public static byte[] file2Byte(File file){
-
-        byte[] byteArray;
-        try (FileInputStream fileInputStream = new FileInputStream(file); ByteArrayOutputStream bos = new ByteArrayOutputStream()) {
-            int i;
-            byte[] bytes = new byte[1024];
-            while((i=fileInputStream.read(bytes))!=-1){
-                bos.write(bytes,0, i);
-            }
-            byteArray = bos.toByteArray();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-        return byteArray;
     }
 }

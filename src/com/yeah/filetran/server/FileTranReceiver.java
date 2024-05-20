@@ -16,29 +16,38 @@ package com.yeah.filetran.server;
 import com.yeah.filetran.util.Util;
 
 import java.io.*;
+import java.net.InetSocketAddress;
 import java.net.ServerSocket;
-import java.net.Socket;
+
 import java.net.SocketAddress;
+import java.nio.ByteBuffer;
+import java.nio.channels.FileChannel;
+import java.nio.channels.ServerSocketChannel;
+import java.nio.channels.SocketChannel;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.util.Properties;
 import java.util.Random;
 import java.util.Scanner;
 
-import static com.yeah.filetran.util.Util.printErr;
-import static com.yeah.filetran.util.Util.printLog;
-import static com.yeah.filetran.util.Util.jarPath;
+import static com.yeah.filetran.util.Util.*;
 
 public class FileTranReceiver {
     private int listenerPort;
     private boolean keepAlive;
     private String savePath;
-    private static final String pwd;
+    private String pwd;
+
+    private static final String DEFAULT_PWD;
     private static final int DEFAULT_PORT;
     private static final boolean DEFAULT_ALIVE;
     private static final String DEFAULT_PATH;
-    static {
+    private int allowCount = 1;
+
+     static {
         Properties properties = new Properties();
-        File file = new File(jarPath()+File.separator+"conf"+File.separator+"yftr.conf.xml");
+        File file = new File(Util.jarPath()+File.separator+"conf"+File.separator+"yftr.conf.xml");
         try (FileInputStream fileInputStream = new FileInputStream(file)){
             properties.loadFromXML(fileInputStream);
 
@@ -53,7 +62,6 @@ public class FileTranReceiver {
                     System.exit(0x1);
                 }
             }
-
             properties.setProperty("alive","false");
             properties.setProperty("port","4951");
             properties.setProperty("path",new File(Util.jarPath()+File.separator+"r_res").getAbsolutePath());
@@ -66,13 +74,13 @@ public class FileTranReceiver {
             }
 
         }
-        DEFAULT_ALIVE = Boolean.parseBoolean(properties.getProperty("alive"));
-        pwd = properties.getProperty("pwd");
-        DEFAULT_PORT = Integer.parseInt(properties.getProperty("port"));
-        DEFAULT_PATH = properties.getProperty("path");
-        printLog("配置文件加载成功...");
-        printLog("可前往"+jarPath()+File.separator+"conf"+File.separator+"yftr.conf.xml修改相应配置信息");
-    }
+             DEFAULT_ALIVE = Boolean.parseBoolean(properties.getProperty("alive"));
+             DEFAULT_PWD = properties.getProperty("pwd");
+             DEFAULT_PORT = Integer.parseInt(properties.getProperty("port"));
+             DEFAULT_PATH = properties.getProperty("path");
+             printLog("初始化文件成功...");
+     }
+
 
     private static FileTranReceiver fileTranReceiver;
 
@@ -81,12 +89,35 @@ public class FileTranReceiver {
         this.listenerPort = DEFAULT_PORT;
         this.keepAlive = DEFAULT_ALIVE;
         this.savePath =DEFAULT_PATH;
+        this.pwd=DEFAULT_PWD;
     }
     public static FileTranReceiver getInstance(){
         if(fileTranReceiver==null){
             fileTranReceiver = new FileTranReceiver();
         }
-        return fileTranReceiver;
+        File file = new File(fileTranReceiver.savePath);
+        file.mkdirs();
+        if(file.exists()) return fileTranReceiver;
+        printErr("没有对"+fileTranReceiver.savePath+"的读写权限...");
+        System.exit(0x4);
+        return null;
+    }
+    public void loadConfig(String Path){
+        Properties properties = new Properties();
+        File file = new File(Path);
+
+        try {
+            properties.loadFromXML(new FileInputStream(file));
+        } catch (IOException e) {
+            Util.printErr("加载配置文件失败...");
+            System.exit(1);
+        }
+
+        keepAlive = Boolean.parseBoolean(properties.getProperty("alive"));
+        pwd = properties.getProperty("pwd");
+        listenerPort = Integer.parseInt(properties.getProperty("port"));
+        savePath = properties.getProperty("path");
+        printLog("配置文件加载成功...");
     }
 
 
@@ -102,15 +133,18 @@ public class FileTranReceiver {
     }
 
     public void run(){
+
         try(
-        ServerSocket serverSocket = new ServerSocket(listenerPort)
+                ServerSocketChannel fileSocketChanel = ServerSocketChannel.open();
         ){
+            InetSocketAddress inetSocketAddress = new InetSocketAddress(listenerPort);
+            fileSocketChanel.bind(inetSocketAddress);
             System.out.printf("服务启动成功,正在监听%d端口，等待链接>>>\n",listenerPort);
             do {
-                Socket accept = serverSocket.accept();
+                SocketChannel accept = fileSocketChanel.accept();
                 FileTranReceiverSocket fileTranReceiverSocket = new FileTranReceiverSocket(accept);
                 fileTranReceiverSocket.start();
-            }while (keepAlive);
+            }while (keepAlive||allowCount!=0);
 
         }catch (IOException e) {
             if (listenerPort!=4951){
@@ -157,87 +191,66 @@ public class FileTranReceiver {
         }
     }
 
-    private class FileTranReceiverSocket extends Thread{
+    private class FileTranReceiverSocket extends Thread {
+        SocketChannel socketChannel;
 
-        Socket socket;
-        private FileTranReceiverSocket(Socket socket){
-            this.socket=socket;
+        private FileTranReceiverSocket(SocketChannel socket) {
+            this.socketChannel = socket;
         }
 
         @Override
         public void run() {
-            try (InputStream inputStream = socket.getInputStream()) {
-                byte[] intLength = new byte[4];
-                inputStream.read(intLength);
-                int length = Util.bytes2int(intLength);
-                byte[] header = new byte[length];
-                inputStream.read(header);
-                String s1 = new String(header);
+            try {
+                ByteBuffer allocate = ByteBuffer.allocate(4);
+                socketChannel.read(allocate);
+                allocate.flip();
+                int headLength = allocate.getInt();
+                allocate = ByteBuffer.allocate(headLength);
+                socketChannel.read(allocate);
+                String header = new String(allocate.array(), StandardCharsets.UTF_8);
 
-                if (s1.startsWith("Yeah FILE TRANSMISSION SERVICE:")){
-                    SocketAddress remoteSocketAddress = socket.getRemoteSocketAddress();
-                    printLog("来自"+socket.getInetAddress().toString().substring(1) +"的请求头通过...");
-                    String[] split = s1.split("[=|]");
+                if (header.startsWith("Yeah FILE TRANSMISSION SERVICE:")) {
+                    SocketAddress remoteSocketAddress = socketChannel.getRemoteAddress();
+                    printLog("来自" + remoteSocketAddress.toString().substring(1) + "的请求头通过...");
+                    String[] split = header.split("[=|]");
                     String fileName = split[1];
                     String MD5 = split[3];
+                    long fileSize = Long.parseLong(split[5]);
+                    FileChannel fileChannel = FileChannel.open(Paths.get(savePath + File.separator + fileName), StandardOpenOption.WRITE, StandardOpenOption.READ, StandardOpenOption.CREATE);
+                    allocate = ByteBuffer.allocate(1024 * 1024 * 10);
                     printLog("开始传输文件...");
-                    InputStream fileStream = socket.getInputStream();
-
-                    byte[] bytes = stream2ByteArray(fileStream);
-                    if(bytes2File(bytes,savePath+File.separator+fileName)){
-                        printLog("传输完成:"+savePath+File.separator+fileName+" 文件的MD5码为"+MD5+",请自行核验文件完整性");
+                    while (fileSize > 0) {
+                        int read = socketChannel.read(allocate);
+                        if (read < 0) break;
+                        allocate.flip();
+                        fileChannel.write(allocate);
+                        allocate.clear();
+                        fileSize -= read;
                     }
-                }else if(s1.startsWith("Yeah FILE TRANSMISSION SERVICE|")){
-                    if(s1.endsWith("CONNECT")){
-                        printLog("来自"+socket.getInetAddress().toString().substring(1)+"的首次链接请求通过");
-                        OutputStream outputStream = socket.getOutputStream();
-                        int lengths = ("YEAH FILE TRANSMISSION SERVICE|PASS".getBytes(StandardCharsets.UTF_8)).length;
-                        outputStream.write(Util.int2bytes(lengths));
-                        outputStream.write("YEAH FILE TRANSMISSION SERVICE|PASS".getBytes(StandardCharsets.UTF_8));
-                        outputStream.flush();
-                        outputStream.close();
-                    }else if(s1.endsWith("PWD="+pwd)) {
+                    printLog("传输完成:" + savePath + File.separator + fileName + " 文件的MD5码为" + MD5 + ",请自行核验文件完整性");
+                } else if (header.startsWith("Yeah FILE TRANSMISSION SERVICE|")) {
+                    if (header.endsWith("CONNECT")) {
+                        printLog("来自" + socketChannel.getRemoteAddress().toString().substring(1) + "的首次链接请求通过");
+                        byte[] bytes = "YEAH FILE TRANSMISSION SERVICE|PASS".getBytes(StandardCharsets.UTF_8);
+                        ByteBuffer wrap = ByteBuffer.wrap(bytes);
+                        socketChannel.write(wrap);
+                        socketChannel.close();
+                        allowCount--;
+                    } else if (header.endsWith("PWD=" + pwd)) {
                         printLog("接受到远程停止指令...");
-                        socket.close();
                         System.exit(0);
                     }
-
+//
                 }
-            }catch (IOException e){
+            } catch (Exception e) {
                 printErr("传输出错...");
             }catch (OutOfMemoryError ome){
-                printLog("来自"+socket.getInetAddress().toString().substring(1)+"的错误请求，以拒绝...");
-            }
-        }
-        public byte[] stream2ByteArray(InputStream in) throws IOException{
-            ByteArrayOutputStream bos = new ByteArrayOutputStream();
-            byte[] b = new byte[1024];
-            int len;
-            while((len = in.read(b))!=-1) bos.write(b,0,len);
-            byte[] array = bos.toByteArray();
-            bos.close();
-            return array;
-        }
-        public boolean bytes2File(byte[] bytes,String Path) throws IOException {
-            File file = new File(Path);
-            if(!file.getParentFile().exists()){
-                if(!file.getParentFile().mkdirs()){
-                printErr("路径有误或权限不足传输失败");
-                return false;
+                try {
+                    printLog("来自"+socketChannel.getRemoteAddress().toString().substring(1)+"的错误请求，以拒绝...");
+                } catch (IOException e) {
+                    printErr("未知连接发送了一条错误请求");
                 }
             }
-            if(!file.exists()){
-                if(!file.createNewFile()){
-                    printErr("路径有误或权限不足传输失败");
-                    return false;
-                }
-            }
-            FileOutputStream fileOutputStream = new FileOutputStream(Path);
-            fileOutputStream.write(bytes);
-            fileOutputStream.flush();
-            fileOutputStream.close();
-            return true;
         }
     }
-
 }
