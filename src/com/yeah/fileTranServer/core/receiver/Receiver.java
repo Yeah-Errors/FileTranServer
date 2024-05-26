@@ -47,25 +47,6 @@ public class Receiver {
        return receiverConf;
    }
 
-    public void setListenerPort(){
-        Random random = new Random();
-        int i = random.nextInt(65535 - 1024)+1024;
-        while (!checkPort(i)){
-            i = random.nextInt(65535 - 1024)+1024;
-        }
-        receiverConf.setListenerPort(i);
-
-    }
-
-    private boolean checkPort(int port){
-        try {
-            ServerSocket serverSocket = new ServerSocket(port);
-            serverSocket.close();
-            return true;
-        } catch (IOException e) {
-            return false;
-        }
-    }
     public void receive() {
        new Thread(()->{
             try(ServerSocketChannel fileSocketChanel = ServerSocketChannel.open()){
@@ -78,7 +59,7 @@ public class Receiver {
                     fileTranReceiverSocket.start();
                 }while (true);
             }catch(IOException e){
-                printErr(String.format("启动失败，可能的原因:%d端口被占用,请更换端口后重试",receiverConf.getListenerPort()));
+                printErr(String.format("启动失败，可能的原因:%d端口被占用,请更换端口后重试",receiverConf.getListenerPort()),logFile,true);
             }
         }).start();
     }
