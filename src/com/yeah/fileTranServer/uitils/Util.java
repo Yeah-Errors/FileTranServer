@@ -10,33 +10,26 @@
  *
  */
 
-package com.yeah.filetran.util;
+package com.yeah.fileTranServer.uitils;
 
-import java.io.File;
-import java.io.FileInputStream;
+import java.io.*;
 import java.security.MessageDigest;
-import java.util.Date;
+
+import static com.yeah.fileTranServer.uitils.Log.printErr;
+import static com.yeah.fileTranServer.uitils.Log.printLog;
 
 public class Util {
     public static String jarPath()  {
-
             String Path = Util.class.getProtectionDomain().getCodeSource().getLocation().getPath();
             String parsePath = Path.substring(0, Path.lastIndexOf("/"));
-
             return new File(parsePath).getAbsolutePath();
+    }
 
-    }
-    public static void printLog(String msg){
-        System.out.printf("[info]%s : %s\n",new Date(),msg);
-    }
-    public static void printErr(String msg){
-        System.out.printf("[info]%s : %s\n",new Date(),msg);
-    }
     public static String getFileMD5(File file){
         String md5 = "";
-        try {
+        try (FileInputStream fileInputStream = new FileInputStream(file)){
             MessageDigest MD5 = MessageDigest.getInstance("MD5");
-            FileInputStream fileInputStream = new FileInputStream(file);
+
             byte[] bytes = new byte[8192];
             int length;
             while((length = fileInputStream.read(bytes))!=-1){
@@ -52,5 +45,26 @@ public class Util {
 
         }
         return md5;
+    }
+
+    public static void checkFile(File file)  {
+
+        try {
+            if(!file.exists()){
+               checkDir(file.getParentFile());
+               file.createNewFile();
+            }
+        } catch (IOException e) {
+            printErr(String.format("文件%s创建失败,请检查该路径的读写权限",file.getAbsoluteFile()));
+        }
+    }
+    public static void checkDir(File file)  {
+        if(!file.exists()){
+            if(file.mkdirs()){
+                printLog(String.format("文件存储目录 %s \\创建成功",file.getAbsoluteFile()));
+            }else {
+                printErr(String.format("文件存储目录%s创建失败,请检查该路径的读写权限",file.getAbsoluteFile()));
+            }
+        }
     }
 }
