@@ -13,8 +13,8 @@
 package com.yeah.fileTranServer;
 
 public class ApplicationVariousInfo {
-    public final static String Version = "2.0.0";
-    public final static int VersionCode = 2;
+    public final static String Version = "2.0.1";
+    public final static int VersionCode = 7;
     public final static String ApplicationName_CN = "文件传输助手";
     public final static String ApplicationName_EN="Yeah File Tran";
     public static boolean isStartByUI=true;
