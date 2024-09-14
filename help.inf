@@ -1,0 +1,20 @@
+欢迎使用 YeahFileTranHelper
+
+这是一个简单的文件传输工具（采用NIO,分段传输）
+
+用法:
+java -jar yfth.jar -S(-R,-I,-H) [-para value]...
+	-S 去发送文件
+		-h host : 链接至指定域
+		-p port : 通过指定端口链接
+		-f filePath :必须参数（可重复），发送指定文件
+		-s pwd : 远程结束接收端服务
+		-c configPath : 加载指定路径的配置文件
+	-R 去接受收文件
+		-p port : 使用指定端口启动
+		-a true|false : 是否保持存活？（只接收一次？）可通过发送端进行远程停止
+		-f filePath : 将接收到的文件保存至filePath
+	-H 打印帮助信息
+
+Version 3.0(9)
+Source_code url:https://github.com/Yeah-Errors/FileTranServer

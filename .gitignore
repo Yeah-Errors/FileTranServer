@@ -2,8 +2,7 @@
 out/
 !**/src/main/**/out/
 !**/src/test/**/out/
-src/com/yeah/filetran/text/
-src/com/yeah/filetran/header/
+src/com/yeah/filetran/
 
 ### Eclipse ###
 .apt_generated
