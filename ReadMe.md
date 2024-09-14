@@ -20,16 +20,16 @@ java -jar yfth.jar -S -h 127.0.0.1 -p 4951
 ###### 可选参数:  
 `-h host` 连接至host;  
 `-p port` 连接至指定端口;  
-`-s pwd` 远程关闭接收端的接收服务,pwd在接收端`./conf`配置;  （暂不支持）
+`-s pwd` 远程关闭接收端的接收服务,pwd在接收端`./conf`配置;  （暂不支持）  
 `-f file` 发送指定文件至接收端，此选项可多次重复  
-`-c configFilePath` 加载指定路径的配置文件 （暂不支持） 
+`-c configFilePath` 加载指定路径的配置文件 （暂不支持）   
 不使用参数代表以默认配置启动，首次启动后可以在`./conf/yfts.conf.xml`配置  
 ##### -R 启用一个接收端:
 ###### 可选参数:  
 `-p port` 监听指定端口  
-`-a true|false` 是否保持接收端持续接收（false表示只接收一个文件就停止）（已移除）
+`-a true|false` 是否保持接收端持续接收（false表示只接收一个文件就停止）（已移除）  
 `-f filePath` 指定接受后文件的存储位置（请确定所在位置有权限读写）  
-`-c configFilePath` 加载指定路径的配置文件  （暂不支持）
+`-c configFilePath` 加载指定路径的配置文件  （暂不支持）  
 不使用参数代表以默认配置启动，首次启动后可以在`./conf/yftr.conf.xml`配置  
 
 #### -H 输出帮助信息
