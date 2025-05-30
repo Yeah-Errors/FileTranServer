@@ -13,10 +13,10 @@
 package org.yaojiu;
 
 public class ApplicationVariousInfo {
-    public final static String Version = "3.0";
+    public final static String Version = "3.1";
     public final static int VersionCode = 9;
     public final static String ApplicationName_CN = "文件传输助手";
-    public final static String ApplicationName_EN="Yeah File Tran";
+    public final static String ApplicationName_EN="Yeah File Transfer Tool";
     public static boolean isStartByUI=true;
     public final static String PROJECT_URL = "https://github.com/Yeah-Errors/FileTranServer";
 }
