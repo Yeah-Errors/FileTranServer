@@ -12,9 +12,6 @@
 
 package org.yaojiu.uitils;
 
-import org.yaojiu.ApplicationVariousInfo;
-import org.yaojiu.ui.custom.WarringAlert;
-
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
@@ -30,7 +27,6 @@ public class Log {
 
     public static void printErr(String msg){
         System.out.printf("[Error]%s : %s\n",new Date(),msg);
-        if(ApplicationVariousInfo.isStartByUI) WarringAlert.showAlert(msg);
     }
 
     public synchronized static void printLog(String msg,File LogFile,boolean append) {
