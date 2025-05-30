@@ -29,7 +29,7 @@ public class Main extends Application {
     @Override
     public void start(Stage primaryStage) {
         Text text = new Text("欢迎使用文件传输助手");
-        Text text_info = new Text("由于fx适配问题，ui端将停止更新~(后续可能适配web端)");
+        Text text_info = new Text("Author : Yeah");
         text.setFont(Font.font(40));
         text_info.setFont(Font.font(20));
         text_info.setFill(Color.GREEN);
